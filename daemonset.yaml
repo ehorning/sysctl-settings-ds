@@ -1,0 +1,44 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: sysctl-settings
+  namespace: kube-system
+spec:
+  selector:
+    matchLabels:
+      name: sysctl-settings
+  template:
+    metadata:
+      labels:
+        name: sysctl-settings
+    spec:
+      initContainers:
+      - name: sysctl-settings
+        image: debian
+        command:
+          - /bin/bash
+          - -c
+          - |
+            current_sysctl=$(sed -n "s/.*pod-sysctls=\s*'\([^']*\)'.*/\1/p" /etc/default/kubelet)
+            new_sysctls="net.ipv4.tcp_no_metrics_save=1,net.ipv4.tcp_slow_start_after_idle=0,net.ipv4.tcp_rto_min_us=5000,net.core.optmem_max=131072"
+            combined_sysctls="${current_sysctls},${new_sysctls}"
+            if [[ -z $(grep "$new_sysctls" /etc/default/kubelet) ]]; then
+              echo $(sed "s/\(pod-sysctls=\s*'\)[^']*\('\)/\1$combined_sysctls\2/g" /etc/default/kubelet) > /etc/default/kubelet
+              nsenter --target 1 --mount bash -c "systemctl restart kubelet"
+            fi
+        securityContext:
+          privileged: true
+        volumeMounts:
+        - mountPath:  /etc/default/kubelet
+          name: kubelet-config
+      volumes:
+      - name: kubelet-config
+        hostPath:
+          path: /etc/default/kubelet
+          type: File
+      containers:
+      - image: "gke.gcr.io/pause:3.8@sha256:880e63f94b145e46f1b1082bb71b85e21f16b99b180b9996407d61240ceb9830"
+        name: pause
+      hostNetwork: true
+      hostPID: true
+      hostIPC: true
