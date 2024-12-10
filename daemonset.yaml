@@ -23,7 +23,8 @@ spec:
             new_sysctls="net.ipv4.tcp_no_metrics_save=1,"\
             "net.ipv4.tcp_slow_start_after_idle=0,"\
             "net.ipv4.tcp_rto_min_us=5000,"\
-            "net.core.optmem_max=131072"
+            "net.core.optmem_max=131072,"\
+            "net.ipv4.tcp_rmem=4096 41943040 314572800"
             combined_sysctls="${current_sysctls},${new_sysctls}"
             if [[ -z $(grep "${new_sysctls}" /etc/default/kubelet) ]]; then
               new_kubelet_config=$(sed "s/\(pod-sysctls=\s*'\)[^']*\('\)/\1${combined_sysctls}\2/g" /etc/default/kubelet)
