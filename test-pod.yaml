@@ -3,7 +3,20 @@ kind: Pod
 metadata:
   name: ubuntu
 spec:
-  containers:
+  affinity:
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+        - matchExpressions:
+          - key: cloud.google.com/gke-tpu-accelerator
+            operator: In
+            values:
+            - tpu-v6e-slice
+  tolerations:
+  - operator: "Exists"
+    effect: "NoExecute"
+  - operator: "Exists"
+    effect: "NoSchedule"
   containers:
     - name: ubuntu
       image: ubuntu:latest
